@@ -1,0 +1,25 @@
+# Local env files (secrets never committed)
+.env
+.env.local
+.env.*.local
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Convex generated files
+convex/_generated/
+
+# Build output
+dist/
+.next/
+out/
+
+# Claude Code local config
+.claude/
+!4_Formula/.claude/
+!4_Formula/.claude/**

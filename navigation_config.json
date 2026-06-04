@@ -1,0 +1,38 @@
+{
+  "projectMenu": [
+    { "label": "Home", "url": "index.html" },
+    { "label": "Queries", "url": "markdown_renderer.html?file=5_Symbols/convex_queries.md" },
+    { "label": "Mutations", "url": "markdown_renderer.html?file=5_Symbols/convex_mutations.md" },
+    { "label": "Architecture", "url": "markdown_renderer.html?file=2_Environment/architecture.md" }
+  ],
+  "debugMenu": [
+    { "label": "1. Real Unknown", "url": "1_Real_Unknown/" },
+    { "label": "   ├─ Problem Statement", "url": "1_Real_Unknown/problem_statement.md" },
+    { "label": "   ├─ OKRs", "url": "1_Real_Unknown/okrs.md" },
+    { "label": "   ├─ Questions", "url": "1_Real_Unknown/questions.md" },
+    { "label": "   ├─ Hypotheses", "url": "1_Real_Unknown/hypotheses.md" },
+    { "label": "   ├─ Kanban Board", "url": "1_Real_Unknown/kanban.md" },
+    { "label": "   └─ Cost Tracker", "url": "1_Real_Unknown/costs.md" },
+    { "label": "2. Environment", "url": "2_Environment/" },
+    { "label": "   ├─ Architecture", "url": "2_Environment/architecture.md" },
+    { "label": "   ├─ Setup Mac", "url": "2_Environment/setup_mac.md" },
+    { "label": "   └─ Setup Azure", "url": "2_Environment/setup_azure.md" },
+    { "label": "3. Simulation", "url": "3_Simulation/" },
+    { "label": "4. Formula", "url": "4_Formula/" },
+    { "label": "   ├─ LLM Thinking Log", "url": "4_Formula/llm_thinking_log.md" },
+    { "label": "   └─ Decisions", "url": "4_Formula/decisions.md" },
+    { "label": "5. Symbols", "url": "5_Symbols/" },
+    { "label": "   ├─ Convex Schema", "url": "5_Symbols/convex_schema.md" },
+    { "label": "   ├─ Queries", "url": "5_Symbols/convex_queries.md" },
+    { "label": "   └─ Mutations", "url": "5_Symbols/convex_mutations.md" },
+    { "label": "6. Semblance", "url": "6_Semblance/" },
+    { "label": "   ├─ Error Log", "url": "6_Semblance/error_log.md" },
+    { "label": "   └─ Lessons Learned", "url": "6_Semblance/lessons_learned.md" },
+    { "label": "7. Testing Known", "url": "7_Testing_Known/" },
+    { "label": "   └─ Validation Report", "url": "7_Testing_Known/validation_report.md" },
+    { "label": "---", "url": "divider" },
+    { "label": "agents.md", "url": "agents.md" },
+    { "label": "prompts.md", "url": "prompts.md" },
+    { "label": "claude.md", "url": "claude.md" }
+  ]
+}

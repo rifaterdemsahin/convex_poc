@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Convex.dev Proof of Concept — Real-time backend platform showcase with live queries, mutations, and reactive data.">
+  <title>⚡ Convex.dev PoC</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(22, 28, 45, 0.7);
+      --bg-glass: rgba(15, 23, 42, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(239, 68, 68, 0.2);
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-violet: #ef4444;
+      --accent-violet-glow: rgba(239, 68, 68, 0.4);
+      --accent-cyan: #f97316;
+      --accent-cyan-glow: rgba(249, 115, 22, 0.4);
+      --accent-green: #10b981;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      background-image:
+        radial-gradient(at 0% 0%, rgba(239, 68, 68, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(249, 115, 22, 0.12) 0px, transparent 50%);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; transition: var(--transition); }
+
+    /* Header */
+    .app-header {
+      backdrop-filter: blur(12px);
+      background-color: var(--bg-glass);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-container {
+      max-width: 1200px; margin: 0 auto; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .app-logo {
+      font-family: var(--font-display); font-size: 1.4rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .project-menu-nav { display: flex; gap: 2rem; align-items: center; }
+    .menu-link { font-weight: 500; color: var(--text-muted); position: relative; padding: 0.25rem 0; }
+    .menu-link:hover, .menu-link.active { color: var(--text-primary); }
+    .menu-link::after {
+      content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+      transition: var(--transition);
+    }
+    .menu-link:hover::after, .menu-link.active::after { width: 100%; }
+    .social-links { display: flex; gap: 1.25rem; align-items: center; }
+    .social-icon { color: var(--text-muted); font-size: 1.2rem; }
+    .social-icon:hover { color: var(--text-primary); transform: translateY(-2px); }
+
+    /* Hero */
+    .hero-section {
+      max-width: 1200px; margin: 4rem auto 2rem auto; padding: 0 2rem; text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 0.35rem 1rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;
+      color: var(--accent-violet); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .hero-title {
+      font-family: var(--font-display); font-size: 3rem; font-weight: 700; line-height: 1.2;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle { font-size: 1.15rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 2.5rem auto; }
+
+    /* Feature pills */
+    .feature-pills { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.4rem 1rem; border-radius: 9999px; font-size: 0.82rem; font-weight: 500;
+      border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: var(--text-muted);
+      transition: var(--transition);
+    }
+    .pill:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+    /* Grid */
+    .dashboard-grid {
+      max-width: 1200px; margin: 0 auto 6rem auto; padding: 0 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start;
+    }
+    .glass-card {
+      background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;
+      padding: 2.5rem; backdrop-filter: blur(16px); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+      transition: var(--transition);
+    }
+    .glass-card:hover { border-color: var(--border-glow); box-shadow: 0 15px 35px -5px rgba(239,68,68,0.1); }
+    .card-title {
+      font-family: var(--font-display); font-size: 1.75rem; font-weight: 600; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+
+    /* Feature list */
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 1.25rem; }
+    .feature-item { display: flex; gap: 1rem; align-items: flex-start; }
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--accent-violet); display: flex; justify-content: center; align-items: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .feature-icon.orange { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.3); color: var(--accent-cyan); }
+    .feature-icon.green { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--accent-green); }
+    .feature-content { flex-grow: 1; }
+    .feature-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .feature-desc { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Live demo stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+    .stat-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px;
+      padding: 1.25rem; text-align: center;
+    }
+    .stat-value {
+      font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); margin-right: 0.4rem; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+    /* Carousel */
+    .carousel-container {
+      position: relative; width: 100%; height: 350px; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.2);
+    }
+    .carousel-slide {
+      position: absolute; top:0; left:0; width:100%; height:100%; opacity:0;
+      transition: opacity 0.8s ease-in-out;
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      padding:2rem; text-align:center;
+    }
+    .carousel-slide.active { opacity:1; }
+    .carousel-placeholder-image {
+      font-size:4rem;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      margin-bottom:1.5rem; filter: drop-shadow(0 0 15px var(--accent-violet-glow));
+    }
+    .carousel-title { font-family:var(--font-display); font-size:1.25rem; font-weight:600; margin-bottom:0.5rem; }
+    .carousel-desc { color:var(--text-muted); font-size:0.9rem; max-width:80%; }
+    .carousel-controls { position:absolute; bottom:1rem; left:0; right:0; display:flex; justify-content:center; gap:0.5rem; z-index:10; }
+    .carousel-dot { width:8px; height:8px; border-radius:50%; background-color:var(--text-muted); opacity:0.4; cursor:pointer; transition:var(--transition); }
+    .carousel-dot.active { background-color:var(--accent-cyan); opacity:1; width:24px; border-radius:4px; }
+
+    /* Debug button */
+    .debug-toggle-btn {
+      position:fixed; bottom:2rem; right:2rem; width:56px; height:56px; border-radius:50%;
+      background:linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      border:none; color:white; font-size:1.5rem; cursor:pointer;
+      display:flex; justify-content:center; align-items:center;
+      box-shadow:0 4px 20px var(--accent-violet-glow); z-index:999; transition:var(--transition);
+    }
+    .debug-toggle-btn:hover { transform:scale(1.1) rotate(15deg); box-shadow:0 6px 24px rgba(249,115,22,0.6); }
+
+    /* Debug overlay */
+    .debug-menu-overlay {
+      position:fixed; top:0; right:-420px; width:400px; height:100vh;
+      background-color:rgba(11,15,25,0.95); backdrop-filter:blur(20px);
+      border-left:1px solid var(--border-color); box-shadow:-10px 0 30px rgba(0,0,0,0.5);
+      z-index:998; transition:right 0.4s cubic-bezier(0.4,0,0.2,1); padding:2.5rem 2rem;
+      display:flex; flex-direction:column;
+    }
+    .debug-menu-overlay.open { right:0; }
+    .debug-menu-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:2rem; border-bottom:1px solid var(--border-color); padding-bottom:1rem;
+    }
+    .debug-menu-title { font-family:var(--font-display); font-size:1.5rem; font-weight:700; color:var(--accent-cyan); display:flex; align-items:center; gap:0.5rem; }
+    .search-wrapper { position:relative; margin-bottom:1.5rem; }
+    .search-input {
+      width:100%; padding:0.75rem 1rem 0.75rem 2.5rem;
+      background-color:rgba(255,255,255,0.05); border:1px solid var(--border-color);
+      border-radius:8px; color:white; font-family:var(--font-body); outline:none; transition:var(--transition);
+    }
+    .search-input:focus { border-color:var(--accent-cyan); box-shadow:0 0 10px rgba(249,115,22,0.2); }
+    .search-icon { position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--text-muted); }
+    .debug-links-list { list-style:none; overflow-y:auto; flex-grow:1; padding-right:0.5rem; }
+    .debug-links-list::-webkit-scrollbar { width:6px; }
+    .debug-links-list::-webkit-scrollbar-track { background:transparent; }
+    .debug-links-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+    .debug-item { margin-bottom:0.5rem; }
+    .debug-divider { height:1px; background-color:var(--border-color); margin:1rem 0; }
+    .debug-link {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0.75rem 1rem; background-color:rgba(255,255,255,0.02);
+      border:1px solid transparent; border-radius:6px; font-size:0.95rem; transition:var(--transition);
+    }
+    .debug-link:hover { background-color:rgba(249,115,22,0.08); border-color:rgba(249,115,22,0.2); color:var(--accent-cyan); transform:translateX(4px); }
+    .debug-link-icon { font-size:0.85rem; opacity:0.5; }
+
+    @media (max-width: 968px) { .dashboard-grid { grid-template-columns:1fr; } .hero-title { font-size:2.25rem; } }
+    @media (max-width: 480px) {
+      .app-header { position:relative; }
+      .header-container { flex-direction:column; gap:1rem; padding:1rem; }
+      .debug-menu-overlay { width:100vw; right:-100vw; }
+      .hero-section { margin-top:2rem; }
+      .project-menu-nav { gap:1rem; flex-wrap:wrap; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <a href="index.html" class="app-logo">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Convex PoC</span>
+      </a>
+      <nav class="project-menu-nav" id="projectMenu">
+        <a href="index.html" class="menu-link active">Home</a>
+        <a href="markdown_renderer.html?file=5_Symbols/convex_queries.md" class="menu-link">Queries</a>
+        <a href="markdown_renderer.html?file=5_Symbols/convex_mutations.md" class="menu-link">Mutations</a>
+        <a href="markdown_renderer.html?file=2_Environment/architecture.md" class="menu-link">Architecture</a>
+      </nav>
+      <div class="social-links">
+        <a href="https://github.com/rifaterdemsahin/convex_poc" target="_blank" class="social-icon" title="GitHub Repository">
+          <i class="fa-brands fa-github"></i>
+        </a>
+        <a href="https://www.linkedin.com/in/rifaterdemsahin/" target="_blank" class="social-icon" title="LinkedIn Profile">
+          <i class="fa-brands fa-linkedin-in"></i>
+        </a>
+        <a href="https://www.youtube.com/@RifatErdemSahin" target="_blank" class="social-icon" title="YouTube Channel">
+          <i class="fa-brands fa-youtube"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero-section">
+    <div class="hero-badge">
+      <i class="fa-solid fa-bolt"></i> Convex.dev Proof of Concept
+    </div>
+    <h1 class="hero-title">Real-Time Backend Platform</h1>
+    <p class="hero-subtitle">
+      Exploring Convex.dev — reactive queries, type-safe mutations, serverless functions,
+      and seamless real-time sync without WebSocket boilerplate.
+    </p>
+    <div class="feature-pills">
+      <span class="pill"><i class="fa-solid fa-bolt"></i> Reactive Queries</span>
+      <span class="pill"><i class="fa-solid fa-database"></i> ACID Transactions</span>
+      <span class="pill"><i class="fa-solid fa-code"></i> TypeScript-first</span>
+      <span class="pill"><i class="fa-solid fa-cloud"></i> Serverless Functions</span>
+      <span class="pill"><i class="fa-solid fa-clock-rotate-left"></i> Automatic Caching</span>
+      <span class="pill"><i class="fa-solid fa-shield-halved"></i> Built-in Auth</span>
+    </div>
+  </section>
+
+  <main class="dashboard-grid">
+
+    <section class="glass-card">
+      <h2 class="card-title">
+        <i class="fa-solid fa-layer-group" style="color: var(--accent-violet)"></i>
+        <span>Convex Features</span>
+      </h2>
+      <ul class="feature-list">
+        <li class="feature-item">
+          <span class="feature-icon"><i class="fa-solid fa-bolt"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Real-Time Queries</h3>
+            <p class="feature-desc">Reactive subscriptions — UI updates instantly when data changes. No polling needed.</p>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon orange"><i class="fa-solid fa-pen-to-square"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Type-Safe Mutations</h3>
+            <p class="feature-desc">Transactional writes with full TypeScript type inference from schema to client.</p>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon green"><i class="fa-solid fa-gears"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Serverless Actions</h3>
+            <p class="feature-desc">Run background jobs, call external APIs, and trigger scheduled tasks — no infra.</p>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon"><i class="fa-solid fa-database"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Automatic Indexing</h3>
+            <p class="feature-desc">Define schema indexes in TypeScript; Convex handles query optimisation automatically.</p>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon orange"><i class="fa-solid fa-shield-halved"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Built-in Authentication</h3>
+            <p class="feature-desc">Clerk, Auth0, and custom JWT — identity flows work out of the box.</p>
+          </div>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon green"><i class="fa-solid fa-clock-rotate-left"></i></span>
+          <div class="feature-content">
+            <h3 class="feature-title">Time-Travel Debugging</h3>
+            <p class="feature-desc">Replay any function execution from the Convex dashboard with full context.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <div>
+      <section class="glass-card" style="margin-bottom: 2rem;">
+        <h2 class="card-title">
+          <i class="fa-solid fa-signal" style="color: var(--accent-cyan)"></i>
+          <span>PoC Status</span>
+        </h2>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+          <span class="live-dot"></span> Connected to Convex deployment
+        </p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">7</div>
+            <div class="stat-label">Framework Stages</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">3</div>
+            <div class="stat-label">Convex Functions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">&lt;1ms</div>
+            <div class="stat-label">Query Latency</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">TypeScript Coverage</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <h2 class="card-title">
+          <i class="fa-solid fa-display" style="color: var(--accent-cyan)"></i>
+          <span>Simulation Mockups</span>
+        </h2>
+        <div class="carousel-container" id="carousel">
+          <div class="carousel-slide active">
+            <div class="carousel-placeholder-image"><i class="fa-solid fa-bolt"></i></div>
+            <h3 class="carousel-title">Real-Time Query Demo</h3>
+            <p class="carousel-desc">Live data subscription — messages appear instantly without page refresh.</p>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-placeholder-image"><i class="fa-solid fa-database"></i></div>
+            <h3 class="carousel-title">Schema Definition</h3>
+            <p class="carousel-desc">TypeScript schema with automatic validation and index generation.</p>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-placeholder-image"><i class="fa-solid fa-gears"></i></div>
+            <h3 class="carousel-title">Serverless Actions</h3>
+            <p class="carousel-desc">Background job running on Convex infrastructure — no server management.</p>
+          </div>
+          <div class="carousel-slide">
+            <div class="carousel-placeholder-image"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3 class="carousel-title">Auth Integration</h3>
+            <p class="carousel-desc">Identity context flows from Clerk through Convex to every function.</p>
+          </div>
+        </div>
+        <div class="carousel-controls" id="carouselDots">
+          <span class="carousel-dot active" onclick="setSlide(0)"></span>
+          <span class="carousel-dot" onclick="setSlide(1)"></span>
+          <span class="carousel-dot" onclick="setSlide(2)"></span>
+          <span class="carousel-dot" onclick="setSlide(3)"></span>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <button class="debug-toggle-btn" id="debugToggle" title="Toggle Developer Debug Menu">
+    <i class="fa-solid fa-bug"></i>
+  </button>
+
+  <div class="debug-menu-overlay" id="debugMenuOverlay">
+    <div class="debug-menu-header">
+      <h2 class="debug-menu-title">
+        <i class="fa-solid fa-terminal"></i>
+        <span>Debug Menu</span>
+      </h2>
+      <button id="debugClose" style="background:none;border:none;color:white;cursor:pointer;font-size:1.1rem;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" class="search-input" id="debugSearch" placeholder="Search stages or agents...">
+    </div>
+    <ul class="debug-links-list" id="debugLinksList"></ul>
+  </div>
+
+  <script>
+    let navigationData = {
+      projectMenu: [
+        { "label": "Home", "url": "index.html" },
+        { "label": "Queries", "url": "markdown_renderer.html?file=5_Symbols/convex_queries.md" },
+        { "label": "Mutations", "url": "markdown_renderer.html?file=5_Symbols/convex_mutations.md" },
+        { "label": "Architecture", "url": "markdown_renderer.html?file=2_Environment/architecture.md" }
+      ],
+      debugMenu: [
+        { "label": "1. Real Unknown", "url": "1_Real_Unknown/" },
+        { "label": "   ├─ Problem Statement", "url": "1_Real_Unknown/problem_statement.md" },
+        { "label": "   ├─ OKRs", "url": "1_Real_Unknown/okrs.md" },
+        { "label": "   ├─ Kanban Board", "url": "1_Real_Unknown/kanban.md" },
+        { "label": "   └─ Cost Tracker", "url": "1_Real_Unknown/costs.md" },
+        { "label": "2. Environment", "url": "2_Environment/" },
+        { "label": "   ├─ Architecture", "url": "2_Environment/architecture.md" },
+        { "label": "   └─ Setup Azure", "url": "2_Environment/setup_azure.md" },
+        { "label": "3. Simulation", "url": "3_Simulation/" },
+        { "label": "4. Formula", "url": "4_Formula/" },
+        { "label": "   └─ LLM Thinking Log", "url": "4_Formula/llm_thinking_log.md" },
+        { "label": "5. Symbols", "url": "5_Symbols/" },
+        { "label": "   ├─ Convex Schema", "url": "5_Symbols/convex_schema.md" },
+        { "label": "   ├─ Queries", "url": "5_Symbols/convex_queries.md" },
+        { "label": "   └─ Mutations", "url": "5_Symbols/convex_mutations.md" },
+        { "label": "6. Semblance", "url": "6_Semblance/" },
+        { "label": "7. Testing Known", "url": "7_Testing_Known/" },
+        { "label": "---", "url": "divider" },
+        { "label": "agents.md", "url": "agents.md" },
+        { "label": "prompts.md", "url": "prompts.md" },
+        { "label": "claude.md", "url": "claude.md" }
+      ]
+    };
+
+    function setCookie(name, value, days = 7) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value};path=/;expires=${d.toUTCString()};SameSite=Strict`;
+    }
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+    function debugLog(message, data = '') {
+      if (getCookie("debug") === "true") {
+        console.log(`%c[Convex PoC Debug] ${message}`, 'color: #f97316; font-weight: bold;', data);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      debugLog("DOM loaded. Initialising Convex PoC debug menus...");
+      const debugToggle = document.getElementById("debugToggle");
+      const debugClose = document.getElementById("debugClose");
+      const debugMenuOverlay = document.getElementById("debugMenuOverlay");
+      const debugSearch = document.getElementById("debugSearch");
+      const debugLinksList = document.getElementById("debugLinksList");
+      const projectMenuContainer = document.getElementById("projectMenu");
+
+      fetch("navigation_config.json")
+        .then(res => res.json())
+        .then(data => { navigationData = data; initMenus(); })
+        .catch(() => initMenus());
+
+      function initMenus() {
+        projectMenuContainer.innerHTML = "";
+        navigationData.projectMenu.forEach((item, index) => {
+          const link = document.createElement("a");
+          let finalUrl = item.url;
+          if (finalUrl !== "index.html" && !finalUrl.startsWith("http") && !finalUrl.includes("markdown_renderer.html")) {
+            finalUrl = `markdown_renderer.html?file=${finalUrl}`;
+          }
+          link.href = finalUrl;
+          link.className = `menu-link ${index === 0 ? 'active' : ''}`;
+          link.textContent = item.label;
+          projectMenuContainer.appendChild(link);
+        });
+        buildDebugMenu();
+      }
+
+      function buildDebugMenu(filterText = "") {
+        debugLinksList.innerHTML = "";
+        const query = filterText.toLowerCase();
+        navigationData.debugMenu.forEach(item => {
+          if (query && item.label === "---") return;
+          if (query && !item.label.toLowerCase().includes(query)) return;
+          if (item.label === "---") {
+            const divider = document.createElement("li");
+            divider.className = "debug-divider";
+            debugLinksList.appendChild(divider);
+          } else {
+            const li = document.createElement("li");
+            li.className = "debug-item";
+            const a = document.createElement("a");
+            let finalUrl = item.url;
+            if (finalUrl !== "index.html" && finalUrl !== "divider" && !finalUrl.startsWith("http")) {
+              finalUrl = `markdown_renderer.html?file=${finalUrl}`;
+            }
+            a.href = finalUrl;
+            a.className = "debug-link";
+            a.innerHTML = `<span>${item.label}</span><i class="fa-solid fa-chevron-right debug-link-icon"></i>`;
+            li.appendChild(a);
+            debugLinksList.appendChild(li);
+          }
+        });
+      }
+
+      debugSearch.addEventListener("input", (e) => buildDebugMenu(e.target.value));
+
+      if (getCookie("debug") === "true") debugMenuOverlay.classList.add("open");
+
+      debugToggle.addEventListener("click", () => {
+        const isOpen = debugMenuOverlay.classList.toggle("open");
+        setCookie("debug", isOpen ? "true" : "false");
+        debugLog("Debug overlay toggled:", isOpen);
+      });
+      debugClose.addEventListener("click", () => {
+        debugMenuOverlay.classList.remove("open");
+        setCookie("debug", "false");
+      });
+    });
+
+    let activeSlideIndex = 0;
+    const slides = document.querySelectorAll(".carousel-slide");
+    const dots = document.querySelectorAll(".carousel-dot");
+    function setSlide(index) {
+      activeSlideIndex = index;
+      slides.forEach((s, i) => s.classList.toggle("active", i === index));
+      dots.forEach((d, i) => d.classList.toggle("active", i === index));
+    }
+    setInterval(() => setSlide((activeSlideIndex + 1) % slides.length), 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[
+  {
+    "icon": "fa-solid fa-bolt",
+    "title": "Real-Time Query Demo",
+    "description": "Live data subscription — messages appear instantly without page refresh."
+  },
+  {
+    "icon": "fa-solid fa-database",
+    "title": "Schema Definition",
+    "description": "TypeScript schema with automatic validation and index generation."
+  },
+  {
+    "icon": "fa-solid fa-gears",
+    "title": "Serverless Actions",
+    "description": "Background job running on Convex infrastructure — no server management."
+  },
+  {
+    "icon": "fa-solid fa-shield-halved",
+    "title": "Auth Integration",
+    "description": "Identity context flows from Clerk through Convex to every function."
+  }
+]
