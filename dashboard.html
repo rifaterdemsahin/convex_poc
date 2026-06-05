@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usage Dashboard — Convex PoC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark:#0b0f19; --bg-card:rgba(22,28,45,0.7); --bg-glass:rgba(15,23,42,0.6);
+      --border-color:rgba(255,255,255,0.08); --text-primary:#f8fafc; --text-muted:#94a3b8;
+      --accent:#ef4444; --orange:#f97316; --green:#10b981; --blue:#38bdf8;
+      --purple:#a78bfa; --yellow:#fbbf24;
+      --font-display:'Outfit',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'Fira Code',monospace;
+      --t:all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg-dark); color:var(--text-primary); font-family:var(--font-body); min-height:100vh; line-height:1.6; }
+    a { color:inherit; text-decoration:none; }
+
+    header { backdrop-filter:blur(12px); background:var(--bg-glass); border-bottom:1px solid var(--border-color); position:sticky; top:0; z-index:100; }
+    .hdr { max-width:1200px; margin:0 auto; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-family:var(--font-display); font-size:1.4rem; font-weight:700;
+      background:linear-gradient(135deg,var(--accent),var(--orange)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; display:flex; align-items:center; gap:0.5rem; }
+    nav { display:flex; gap:1.75rem; flex-wrap:wrap; }
+    .nav-link { font-weight:500; color:var(--text-muted); position:relative; padding:0.25rem 0; transition:var(--t); font-size:0.9rem; }
+    .nav-link:hover, .nav-link.active { color:var(--text-primary); }
+    .nav-link::after { content:''; position:absolute; bottom:0; left:0; width:0; height:2px; background:linear-gradient(90deg,var(--accent),var(--orange)); transition:var(--t); }
+    .nav-link:hover::after, .nav-link.active::after { width:100%; }
+
+    .page { max-width:1200px; margin:0 auto; padding:3rem 2rem 6rem; }
+    .badge { display:inline-flex; align-items:center; gap:0.4rem; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3);
+      padding:0.3rem 0.9rem; border-radius:9999px; font-size:0.8rem; font-weight:600; color:var(--yellow); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem; }
+    .page-title { font-family:var(--font-display); font-size:2.5rem; font-weight:700; margin-bottom:0.75rem;
+      background:linear-gradient(to right,#fff,#94a3b8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .page-desc { color:var(--text-muted); font-size:1.05rem; max-width:680px; margin-bottom:0.75rem; }
+    .tier-pill { display:inline-flex; align-items:center; gap:0.4rem; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25);
+      padding:0.25rem 0.75rem; border-radius:6px; font-size:0.8rem; color:var(--green); font-weight:500; margin-bottom:2.5rem; }
+
+    /* Metric grid */
+    .metrics-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1.5rem; margin-bottom:3rem; }
+
+    .metric-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; overflow:hidden;
+      cursor:pointer; transition:var(--t); }
+    .metric-card:hover { border-color:rgba(255,255,255,0.15); transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+    .metric-card.active { border-color:var(--card-accent, var(--orange)); box-shadow:0 0 0 1px var(--card-accent, var(--orange)), 0 8px 24px rgba(0,0,0,0.2); }
+
+    .metric-header { padding:1.25rem 1.5rem 1rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+    .metric-left { display:flex; align-items:center; gap:0.75rem; }
+    .metric-icon { width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+    .metric-name { font-weight:600; font-size:0.95rem; }
+    .metric-limit { font-size:0.75rem; color:var(--text-muted); margin-top:0.1rem; font-family:var(--font-mono); }
+    .metric-value { text-align:right; }
+    .metric-used { font-family:var(--font-display); font-size:1.5rem; font-weight:700; }
+    .metric-pct { font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem; }
+
+    .progress-bar { height:4px; background:rgba(255,255,255,0.06); margin:0 1.5rem 0; border-radius:2px; overflow:hidden; }
+    .progress-fill { height:100%; border-radius:2px; transition:width 1s ease; }
+
+    .metric-trigger { padding:0.75rem 1.5rem 1.25rem; font-size:0.8rem; color:var(--text-muted); border-top:1px solid rgba(255,255,255,0.04); margin-top:0.75rem; }
+    .trigger-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:0.3rem; }
+    .trigger-code { font-family:var(--font-mono); color:var(--text-primary); font-size:0.78rem;
+      background:rgba(255,255,255,0.04); padding:0.3rem 0.6rem; border-radius:5px; display:inline-block; }
+
+    /* Detail panel */
+    .detail-panel { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; overflow:hidden; margin-bottom:3rem; }
+    .detail-panel-inner { padding:2rem; }
+    .detail-title { font-family:var(--font-display); font-size:1.4rem; font-weight:700; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem; }
+    .detail-desc { color:var(--text-muted); font-size:0.92rem; max-width:680px; margin-bottom:1.5rem; line-height:1.7; }
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+    .detail-section-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:0.75rem; font-weight:600; }
+
+    .code-wrap { border-radius:9px; overflow:hidden; border:1px solid var(--border-color); }
+    .code-bar { display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.9rem;
+      background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border-color); }
+    .code-lang { font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); }
+    pre { background:#0d1117 !important; padding:1rem !important; margin:0 !important; overflow-x:auto; }
+    code { font-family:var(--font-mono); font-size:0.8rem; color:#e2e8f0; line-height:1.6; }
+    .kw { color:#ff7b72; } .fn { color:#d2a8ff; } .str { color:#a5d6ff; } .cm { color:#8b949e; font-style:italic; }
+    .num { color:#79c0ff; } .type { color:#ffa657; }
+
+    .tips-list { display:flex; flex-direction:column; gap:0.6rem; }
+    .tip { display:flex; gap:0.6rem; align-items:flex-start; font-size:0.84rem; }
+    .tip-dot { width:6px; height:6px; border-radius:50%; margin-top:0.45rem; flex-shrink:0; }
+    .tip-text { color:#cbd5e1; }
+    .tip-text code { font-size:0.78em; }
+
+    /* Page map */
+    .page-map { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+    .page-chip { padding:0.9rem 1rem; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; }
+    .page-chip-name { font-weight:600; font-size:0.88rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+    .page-chip-items { display:flex; flex-direction:column; gap:0.25rem; }
+    .chip-item { font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:0.4rem; }
+    .chip-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+
+    @media (max-width:900px) { .metrics-grid { grid-template-columns:1fr; } .detail-grid { grid-template-columns:1fr; } .page-map { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <a href="index.html" class="logo"><i class="fa-solid fa-bolt"></i> Convex PoC</a>
+    <nav>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="queries.html" class="nav-link">Queries</a>
+      <a href="mutations.html" class="nav-link">Mutations</a>
+      <a href="architecture.html" class="nav-link">Architecture</a>
+      <a href="dashboard.html" class="nav-link active">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <div class="badge"><i class="fa-solid fa-gauge-high"></i> Free Tier</div>
+  <h1 class="page-title">Usage Dashboard</h1>
+  <p class="page-desc">Every metric on the Convex dashboard maps to specific code in this PoC. Click a metric to see exactly which function, page, and operation drives it.</p>
+  <div class="tier-pill"><i class="fa-solid fa-circle-check"></i> Free tier — all limits reset daily. No credit card required.</div>
+
+  <!-- Metric cards -->
+  <div class="metrics-grid" id="metricsGrid"></div>
+
+  <!-- Detail panel -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-panel-inner">
+      <div class="detail-title" id="detailTitle"><i class="fa-solid fa-arrow-pointer"></i> Select a metric above</div>
+      <p class="detail-desc" id="detailDesc">Click any usage card to see how it is generated in this PoC, which pages trigger it, and how to keep consumption low.</p>
+      <div class="detail-grid" id="detailGrid" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Which page uses what -->
+  <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:2rem;">
+    <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.6rem;">
+      <i class="fa-solid fa-map" style="color:var(--orange)"></i> Which page drives which metric
+    </div>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1.5rem;">Every interaction on this site translates to one or more billable Convex operations.</p>
+    <div class="page-map">
+      <div class="page-chip">
+        <div class="page-chip-name"><i class="fa-solid fa-bolt" style="color:var(--accent)"></i> queries.html</div>
+        <div class="page-chip-items">
+          <div class="chip-item"><div class="chip-dot" style="background:var(--accent)"></div> <strong>Function Calls</strong> — 1 per reactive push</div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--blue)"></div> <strong>DB Bandwidth</strong> — rows read per re-run</div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--text-muted)"></div> <em>No storage, no actions</em></div>
+        </div>
+      </div>
+      <div class="page-chip">
+        <div class="page-chip-name"><i class="fa-solid fa-pen-to-square" style="color:var(--orange)"></i> mutations.html</div>
+        <div class="page-chip-items">
+          <div class="chip-item"><div class="chip-dot" style="background:var(--accent)"></div> <strong>Function Calls</strong> — 1 per send/delete</div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--green)"></div> <strong>DB Storage</strong> — bytes per inserted doc</div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--blue)"></div> <strong>DB Bandwidth</strong> — write + triggered re-reads</div>
+        </div>
+      </div>
+      <div class="page-chip">
+        <div class="page-chip-name"><i class="fa-solid fa-diagram-project" style="color:var(--blue)"></i> architecture.html</div>
+        <div class="page-chip-items">
+          <div class="chip-item"><div class="chip-dot" style="background:var(--text-muted)"></div> <em>Static HTML — zero Convex calls</em></div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--text-muted)"></div> <em>No function calls, no DB reads</em></div>
+          <div class="chip-item"><div class="chip-dot" style="background:var(--text-muted)"></div> <em>Served entirely by GitHub Pages</em></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const METRICS = [
+  {
+    id: "fn",
+    name: "Function Calls",
+    icon: "fa-solid fa-code",
+    color: "var(--accent)",
+    bg: "rgba(239,68,68,0.12)",
+    used: 0,
+    limit: "1M / day",
+    limitRaw: 1000000,
+    trigger: "Every query re-run or mutation call",
+    triggerCode: "useQuery(api.messages.listMessages)",
+    desc: "One function call is counted each time Convex executes a query handler, mutation handler, or action handler on the server. This is the primary billing unit for read-heavy real-time apps. On the Queries page, each reactive push re-executes <code>listMessages</code> — that is one call per push per subscribed client. On the Mutations page, each <code>sendMessage</code> or <code>deleteMessage</code> invocation is one call. Queries that return cached results (same args, data unchanged) do not consume a call.",
+    codeTitle: "What triggers a call",
+    code: [
+      { lang: "convex/messages.ts", lines: `<span class="cm">// Each time Convex runs this = 1 function call</span>\n<span class="kw">export const</span> <span class="fn">listMessages</span> = <span class="fn">query</span>({\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx) => {\n    <span class="kw">return</span> <span class="kw">await</span> ctx.db\n      .<span class="fn">query</span>(<span class="str">"messages"</span>).<span class="fn">order</span>(<span class="str">"desc"</span>).<span class="fn">take</span>(<span class="num">50</span>);\n  },\n});\n\n<span class="cm">// Each sendMessage call = 1 function call</span>\n<span class="kw">export const</span> <span class="fn">sendMessage</span> = <span class="fn">mutation</span>({ <span class="cm">/* ... */</span> });` }
+    ],
+    tips: [
+      "Queries with identical args and unchanged data hit a cache — 0 calls consumed",
+      "A single WebSocket connection serves multiple <code>useQuery</code> hooks — shared efficiently",
+      "1M/day resets at midnight UTC — more than enough for any PoC",
+      "Batch related reads into one query handler instead of N separate queries"
+    ]
+  },
+  {
+    id: "action",
+    name: "Action Compute",
+    icon: "fa-solid fa-gears",
+    color: "var(--orange)",
+    bg: "rgba(249,115,22,0.12)",
+    used: 0,
+    limit: "20 GB-hours / day",
+    limitRaw: 20,
+    trigger: "Only Convex actions — NOT queries or mutations",
+    triggerCode: "export const myAction = action({ handler: async ... })",
+    desc: "GB-hours measure CPU + memory time consumed by <strong>actions only</strong>. Actions are the third function type in Convex (alongside queries and mutations) — they are used when you need to call an external REST API, run a long computation, or trigger a scheduled job. <strong>This PoC does not use actions yet</strong> — queries and mutations use zero action compute. You would hit this metric if you added a function that, for example, called the OpenAI API or fetched weather data for a message.",
+    codeTitle: "When action compute is billed",
+    code: [
+      { lang: "convex/actions.ts", lines: `<span class="cm">// This costs Action Compute (GB-hours)</span>\n<span class="kw">export const</span> <span class="fn">summariseMessages</span> = <span class="fn">action</span>({\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx, args) => {\n    <span class="cm">// External HTTP call — cannot run in a query/mutation</span>\n    <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://api.openai.com/v1/..."</span>, {\n      method: <span class="str">"POST"</span>, body: <span class="fn">JSON.stringify</span>({ <span class="cm">/* ... */</span> })\n    });\n    <span class="kw">return</span> res.<span class="fn">json</span>();\n  },\n});\n\n<span class="cm">// Queries and mutations → 0 action compute</span>` }
+    ],
+    tips: [
+      "Queries and mutations cost <strong>zero</strong> action compute — only <code>action()</code> functions bill here",
+      "Actions run in V8 isolates; billed per 128 MB-second of wall-clock time",
+      "Keep actions short — call the external API and return; delegate DB writes to a mutation",
+      "Use <code>ctx.scheduler.runAfter(0, ...)</code> to fan out work without blocking the client"
+    ]
+  },
+  {
+    id: "dbStorage",
+    name: "Database Storage",
+    icon: "fa-solid fa-database",
+    color: "var(--green)",
+    bg: "rgba(16,185,129,0.12)",
+    used: 0,
+    limit: "512 MB",
+    limitRaw: 512,
+    trigger: "Each document inserted and not yet deleted",
+    triggerCode: "ctx.db.insert('messages', { text, author })",
+    desc: "Database storage is the total on-disk size of all documents currently in your Convex tables. Each call to <code>ctx.db.insert()</code> on the Mutations page adds a document. Each <code>ctx.db.delete()</code> reclaims that space. Documents are stored as JSON; a typical message row (text + author + metadata) is roughly 200–400 bytes. At that size, the 512 MB free tier holds approximately 1–2 million messages before you approach the limit.",
+    codeTitle: "Storage lifecycle",
+    code: [
+      { lang: "convex/messages.ts", lines: `<span class="cm">// +1 document to DB Storage</span>\n<span class="kw">await</span> ctx.db.<span class="fn">insert</span>(<span class="str">"messages"</span>, {\n  text: <span class="str">"Hello Convex"</span>,  <span class="cm">// ~13 bytes</span>\n  author: <span class="str">"alice"</span>,       <span class="cm">// ~5 bytes</span>\n  <span class="cm">// _id, _creationTime added automatically</span>\n});\n\n<span class="cm">// Reclaims that document's storage</span>\n<span class="kw">await</span> ctx.db.<span class="fn">delete</span>(args.id);` }
+    ],
+    tips: [
+      "Indexes consume additional storage — each <code>.index()</code> entry is ~50 bytes overhead",
+      "Use <code>ctx.db.patch()</code> to update a field without replacing the full document",
+      "512 MB holds ~1–2M typical message rows — far beyond any PoC needs",
+      "Run <code>npx convex dashboard</code> → Data tab to see exact row sizes"
+    ]
+  },
+  {
+    id: "dbBandwidth",
+    name: "Database Bandwidth",
+    icon: "fa-solid fa-arrows-left-right",
+    color: "var(--blue)",
+    bg: "rgba(56,189,248,0.12)",
+    used: 0,
+    limit: "1 GB / day",
+    limitRaw: 1,
+    trigger: "Bytes read by queries + bytes written by mutations",
+    triggerCode: "ctx.db.query('messages').take(50)  // reads N × row_size",
+    desc: "Database bandwidth counts every byte that moves between the Convex runtime and the database engine — both reads (query results) and writes (mutation inserts/patches/deletes). The Queries page drives bandwidth: every time <code>listMessages</code> re-executes due to a reactive push, it reads up to 50 message rows. If each row is 300 bytes, one re-execution reads 15 KB. With 10 clients subscribed and a new message every 5 seconds, that is 18 KB/s — about 1.5 GB/day, just over the free tier limit at that scale.",
+    codeTitle: "Bandwidth-efficient patterns",
+    code: [
+      { lang: "convex/messages.ts", lines: `<span class="cm">// Reads 50 × row_size bytes per execution</span>\n<span class="kw">export const</span> <span class="fn">listMessages</span> = <span class="fn">query</span>({\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx) => {\n    <span class="kw">return</span> <span class="kw">await</span> ctx.db\n      .<span class="fn">query</span>(<span class="str">"messages"</span>)\n      .<span class="fn">order</span>(<span class="str">"desc"</span>)\n      .<span class="fn">take</span>(<span class="num">50</span>);  <span class="cm">// limit reduces bandwidth</span>\n  }\n});\n\n<span class="cm">// Better: use a cursor-based paginate()</span>\n<span class="kw">return</span> <span class="kw">await</span> <span class="fn">paginate</span>(ctx.db.<span class="fn">query</span>(<span class="str">"messages"</span>), {\n  numItems: <span class="num">20</span>,\n  cursor: args.cursor ?? <span class="kw">null</span>,\n});` }
+    ],
+    tips: [
+      "Use <code>.take(N)</code> or <code>paginate()</code> — never read unbounded tables",
+      "Convex sends only the <em>diff</em> over the WebSocket, not the full result — client bandwidth is minimal",
+      "Use <code>.withIndex()</code> to filter server-side before transmitting rows",
+      "1 GB/day resets at midnight UTC — sufficient for a PoC with < 5 concurrent users"
+    ]
+  },
+  {
+    id: "fileStorage",
+    name: "File Storage",
+    icon: "fa-solid fa-file",
+    color: "var(--purple)",
+    bg: "rgba(167,139,250,0.12)",
+    used: 0,
+    limit: "1 GB",
+    limitRaw: 1,
+    trigger: "Files uploaded via storage.store() in an action",
+    triggerCode: "const storageId = await ctx.storage.store(blob)",
+    desc: "File storage holds binary files — images, PDFs, audio — uploaded through Convex's built-in file storage API. <strong>This PoC does not use file storage.</strong> It would be used if, for example, the Mutations page allowed users to attach an image to a message. The workflow is: client uploads to a generated upload URL → Convex stores the blob → you save the <code>storageId</code> (a string) as a field on your document → clients request a serving URL to display the file.",
+    codeTitle: "File storage workflow",
+    code: [
+      { lang: "convex/files.ts", lines: `<span class="cm">// 1. Generate an upload URL (mutation)</span>\n<span class="kw">export const</span> <span class="fn">generateUploadUrl</span> = <span class="fn">mutation</span>({\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx) =>\n    <span class="kw">await</span> ctx.storage.<span class="fn">generateUploadUrl</span>(),\n});\n\n<span class="cm">// 2. Save the returned storageId on a doc</span>\n<span class="kw">export const</span> <span class="fn">saveFile</span> = <span class="fn">mutation</span>({\n  args: { storageId: v.<span class="fn">id</span>(<span class="str">"_storage"</span>) },\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx, args) =>\n    ctx.db.<span class="fn">insert</span>(<span class="str">"attachments"</span>, { storageId: args.storageId }),\n});\n\n<span class="cm">// 3. Get a serving URL in a query</span>\n<span class="kw">const</span> url = <span class="kw">await</span> ctx.storage.<span class="fn">getUrl</span>(storageId);` }
+    ],
+    tips: [
+      "Client POSTs directly to the upload URL — file bytes never touch your functions",
+      "Files are content-addressed; uploading the same bytes twice stores once",
+      "Use <code>ctx.storage.delete(storageId)</code> when a message is deleted to reclaim storage",
+      "1 GB free tier holds ~500 average smartphone photos at 2 MB each"
+    ]
+  },
+  {
+    id: "fileBandwidth",
+    name: "File Bandwidth",
+    icon: "fa-solid fa-cloud-arrow-down",
+    color: "var(--purple)",
+    bg: "rgba(167,139,250,0.12)",
+    used: 0,
+    limit: "1 GB / day",
+    limitRaw: 1,
+    trigger: "Bytes served when clients fetch a file URL",
+    triggerCode: "ctx.storage.getUrl(storageId)  // serves the bytes",
+    desc: "File bandwidth counts bytes transferred when clients download files via the serving URLs generated by <code>ctx.storage.getUrl()</code>. Each time a user's browser loads an image stored in Convex, those bytes count against this limit. <strong>This PoC currently has no file uploads.</strong> If you added image attachments to messages: a 200 KB image viewed by 10 users = 2 MB of file bandwidth. At 1 GB/day free, that is 5,000 image views per day before hitting the limit.",
+    codeTitle: "Serving stored files",
+    code: [
+      { lang: "components/Attachment.tsx", lines: `<span class="cm">// Query returns the URL — each load uses file bandwidth</span>\n<span class="kw">export const</span> <span class="fn">getAttachments</span> = <span class="fn">query</span>({\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx) => {\n    <span class="kw">const</span> docs = <span class="kw">await</span> ctx.db.<span class="fn">query</span>(<span class="str">"attachments"</span>).<span class="fn">collect</span>();\n    <span class="kw">return</span> <span class="fn">Promise.all</span>(\n      docs.<span class="fn">map</span>(<span class="kw">async</span> (d) => ({\n        ...d,\n        url: <span class="kw">await</span> ctx.storage.<span class="fn">getUrl</span>(d.storageId),\n      }))\n    );\n  },\n});\n\n<span class="cm">// In React: &lt;img src={attachment.url} /&gt; → file bandwidth</span>` }
+    ],
+    tips: [
+      "Cache file URLs in the browser — each re-request counts against bandwidth",
+      "Convex serving URLs are CDN-backed; latency is low but bytes still count",
+      "Compress images before uploading — halving file size halves bandwidth",
+      "Consider serving via a CDN (Cloudflare) for high-traffic public files"
+    ]
+  },
+  {
+    id: "vectorStorage",
+    name: "Vector Storage",
+    icon: "fa-solid fa-brain",
+    color: "var(--yellow)",
+    bg: "rgba(251,191,36,0.12)",
+    used: 0,
+    limit: "512 MB",
+    limitRaw: 512,
+    trigger: "Embedding vectors stored via vectorSearch index",
+    triggerCode: "defineTable({ embedding: v.array(v.float64()) }).vectorIndex(...)",
+    desc: "Vector storage holds float arrays (embeddings) used for semantic search — finding documents by meaning rather than exact text match. <strong>This PoC does not use vectors.</strong> A natural extension would be: when a message is sent, call an embeddings API (e.g. OpenAI <code>text-embedding-3-small</code>) inside an action, store the resulting 1536-float array on the document, and later query by vector similarity to find semantically related messages. Each 1536-dimension float64 embedding is ~12 KB.",
+    codeTitle: "Adding vector search",
+    code: [
+      { lang: "convex/schema.ts", lines: `<span class="cm">// Adds vector storage per document</span>\nmessages: <span class="fn">defineTable</span>({\n  text: v.<span class="fn">string</span>(),\n  author: v.<span class="fn">string</span>(),\n  embedding: v.<span class="fn">optional</span>(v.<span class="fn">array</span>(v.<span class="fn">float64</span>())),\n}).<span class="fn">vectorIndex</span>(<span class="str">"by_embedding"</span>, {\n  vectorField: <span class="str">"embedding"</span>,\n  dimensions: <span class="num">1536</span>,  <span class="cm">// OpenAI ada-002</span>\n}),\n\n<span class="cm">// Query: find 10 most similar messages</span>\n<span class="kw">const</span> results = <span class="kw">await</span> ctx.db\n  .<span class="fn">query</span>(<span class="str">"messages"</span>)\n  .<span class="fn">withVectorSearch</span>(<span class="str">"by_embedding"</span>, {\n    vector: queryEmbedding, limit: <span class="num">10</span>\n  }).<span class="fn">collect</span>();` }
+    ],
+    tips: [
+      "Use <code>dimensions: 1536</code> for OpenAI <code>text-embedding-3-small</code> (cheapest)",
+      "Generate embeddings in an action — the external API call cannot run in a query",
+      "Store the embedding as a field on the same document — no separate table needed",
+      "512 MB holds ~43,000 messages with 1536-d float64 embeddings"
+    ]
+  },
+  {
+    id: "vectorBandwidth",
+    name: "Vector Bandwidth",
+    icon: "fa-solid fa-wave-square",
+    color: "var(--yellow)",
+    bg: "rgba(251,191,36,0.12)",
+    used: 0,
+    limit: "512 MB / day",
+    limitRaw: 512,
+    trigger: "Bytes read during vector similarity search",
+    triggerCode: "ctx.db.query('messages').withVectorSearch(...)",
+    desc: "Vector bandwidth counts bytes read from the vector index during each <code>withVectorSearch()</code> call. Each search scans candidate embeddings to compute cosine similarity. With 1,000 messages, a single vector search reads roughly 1,000 × 12 KB = 12 MB. The 512 MB/day free tier supports about 42 such searches per day at that corpus size — adequate for demos, but plan for the paid tier in production with large corpora or frequent search.",
+    codeTitle: "Vector search in practice",
+    code: [
+      { lang: "convex/search.ts", lines: `<span class="cm">// Each call reads N × 12KB (1536-d float64)</span>\n<span class="kw">export const</span> <span class="fn">semanticSearch</span> = <span class="fn">action</span>({\n  args: { query: v.<span class="fn">string</span>() },\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx, args) => {\n    <span class="cm">// 1. Embed the query (costs Action Compute)</span>\n    <span class="kw">const</span> vec = <span class="kw">await</span> <span class="fn">embed</span>(args.query);\n\n    <span class="cm">// 2. Search (costs Vector Bandwidth)</span>\n    <span class="kw">return</span> <span class="kw">await</span> ctx.vectorSearch(\n      <span class="str">"messages"</span>, <span class="str">"by_embedding"</span>,\n      { vector: vec, limit: <span class="num">10</span> }\n    );\n  },\n});` }
+    ],
+    tips: [
+      "Reduce corpus size by filtering with <code>filter:</code> before the vector scan",
+      "Cache popular query embeddings — embed once, re-use the vector for repeated searches",
+      "Use <code>limit: 10</code> not 100 — fewer candidates read = less bandwidth",
+      "Not needed for this PoC at all — add it only when building semantic search features"
+    ]
+  },
+  {
+    id: "deployments",
+    name: "Deployments",
+    icon: "fa-solid fa-rocket",
+    color: "var(--green)",
+    bg: "rgba(16,185,129,0.12)",
+    used: 0,
+    limit: "40 / day",
+    limitRaw: 40,
+    trigger: "Each npx convex deploy or npx convex dev schema push",
+    triggerCode: "npx convex deploy --prod",
+    desc: "A deployment is counted each time you push a new version of your Convex functions to the cloud — either via <code>npx convex deploy</code> in CI/CD or via <code>npx convex dev</code> which auto-deploys on every file save. The 40/day limit means you can save and hot-reload functions up to 40 times per day in dev mode. In practice, <code>npx convex dev</code>'s watch mode debounces rapid saves, so 40 comfortably covers a full day of active development.",
+    codeTitle: "Deployment workflow",
+    code: [
+      { lang: ".github/workflows/deploy.yml", lines: `<span class="cm"># Each run of this step = 1 deployment</span>\n- <span class="type">name</span>: Deploy Convex functions\n  <span class="type">env</span>:\n    <span class="type">CONVEX_DEPLOY_KEY</span>: \${{ steps.kv.outputs.CONVEX-DEPLOY-KEY }}\n  <span class="type">run</span>: npx convex deploy --prod\n\n<span class="cm"># Local dev — each file-save triggers a deployment</span>\n<span class="cm"># $ npx convex dev</span>\n<span class="cm"># ✔ Deployed functions (deployment 3/40 today)</span>` }
+    ],
+    tips: [
+      "<code>npx convex dev</code> debounces saves — rapid edits count as 1 deployment",
+      "40/day is enough for a full dev day; the counter resets at midnight UTC",
+      "Production CI should deploy once per merged PR — not on every commit",
+      "Preview deployments (for branches) count separately from your prod deployment"
+    ]
+  },
+  {
+    id: "chef",
+    name: "Chef Tokens",
+    icon: "fa-solid fa-hat-chef",
+    color: "var(--orange)",
+    bg: "rgba(249,115,22,0.12)",
+    used: 0,
+    limit: "85K Tokens / day",
+    limitRaw: 85000,
+    trigger: "Prompts sent to Convex's built-in AI coding assistant",
+    triggerCode: "// Convex dashboard → Chef tab → 'Generate function…'",
+    desc: "Chef is Convex's AI coding assistant built into the dashboard. You describe what you want in plain English and Chef generates a type-safe query, mutation, or action for you — already wired to your schema. Each prompt and response consumes tokens from the 85K/day free allowance. <strong>This PoC has not used Chef yet.</strong> A practical use: open the Convex dashboard, go to the Chef tab, and type <em>\"write a query that returns the 10 most recent messages from the general channel\"</em> — Chef outputs a complete, deployable function.",
+    codeTitle: "What Chef generates",
+    code: [
+      { lang: "Chef prompt → convex/messages.ts", lines: `<span class="cm">// Prompt: "list recent messages from a channel"</span>\n<span class="cm">// Chef output (ready to deploy):</span>\n\n<span class="kw">export const</span> <span class="fn">listByChannel</span> = <span class="fn">query</span>({\n  args: { channel: v.<span class="fn">string</span>(), limit: v.<span class="fn">optional</span>(v.<span class="fn">number</span>()) },\n  <span class="fn">handler</span>: <span class="kw">async</span> (ctx, { channel, limit = <span class="num">20</span> }) => {\n    <span class="kw">return</span> <span class="kw">await</span> ctx.db\n      .<span class="fn">query</span>(<span class="str">"messages"</span>)\n      .<span class="fn">withIndex</span>(<span class="str">"by_channel"</span>, (q) =>\n        q.<span class="fn">eq</span>(<span class="str">"channel"</span>, channel)\n      )\n      .<span class="fn">order</span>(<span class="str">"desc"</span>)\n      .<span class="fn">take</span>(limit);\n  },\n});` }
+    ],
+    tips: [
+      "85K tokens/day ≈ ~50–100 Chef prompts depending on function complexity",
+      "Include your schema in the prompt context for more accurate output",
+      "Chef-generated functions still need review — verify index names match your schema",
+      "Chef works best for boilerplate; write complex business logic yourself"
+    ]
+  }
+];
+
+function renderMetrics() {
+  const grid = document.getElementById("metricsGrid");
+  METRICS.forEach(m => {
+    const pct = Math.min((m.used / m.limitRaw) * 100, 100).toFixed(1);
+    const div = document.createElement("div");
+    div.className = "metric-card";
+    div.style.setProperty("--card-accent", m.color);
+    div.id = `card-${m.id}`;
+    div.onclick = () => showDetail(m.id);
+    div.innerHTML = `
+      <div class="metric-header">
+        <div class="metric-left">
+          <div class="metric-icon" style="background:${m.bg};color:${m.color}"><i class="${m.icon}"></i></div>
+          <div>
+            <div class="metric-name">${m.name}</div>
+            <div class="metric-limit">Free: ${m.limit}</div>
+          </div>
+        </div>
+        <div class="metric-value">
+          <div class="metric-used" style="color:${m.color}">${m.used === 0 ? '0' : m.used.toLocaleString()}</div>
+          <div class="metric-pct">${pct}% used</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${m.color};"></div></div>
+      <div class="metric-trigger">
+        <div class="trigger-label">Triggered by</div>
+        <div class="trigger-code">${m.triggerCode}</div>
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function showDetail(id) {
+  const m = METRICS.find(x => x.id === id);
+  if (!m) return;
+
+  document.querySelectorAll(".metric-card").forEach(c => c.classList.remove("active"));
+  document.getElementById(`card-${id}`).classList.add("active");
+
+  document.getElementById("detailTitle").innerHTML =
+    `<i class="${m.icon}" style="color:${m.color}"></i> ${m.name}`;
+  document.getElementById("detailDesc").innerHTML = m.desc;
+
+  const grid = document.getElementById("detailGrid");
+  grid.style.display = "grid";
+
+  const codeHtml = m.code.map(c => `
+    <div class="code-wrap">
+      <div class="code-bar"><span class="code-lang">${c.lang}</span></div>
+      <pre><code>${c.lines}</code></pre>
+    </div>`).join("");
+
+  const tipsHtml = m.tips.map(t =>
+    `<div class="tip"><div class="tip-dot" style="background:${m.color}"></div><div class="tip-text">${t}</div></div>`
+  ).join("");
+
+  grid.innerHTML = `
+    <div>
+      <div class="detail-section-title">Code that triggers this metric</div>
+      ${codeHtml}
+    </div>
+    <div>
+      <div class="detail-section-title">Tips to stay within free tier</div>
+      <div class="tips-list">${tipsHtml}</div>
+    </div>`;
+
+  document.getElementById("detailPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+renderMetrics();
+
+// Auto-open first card
+showDetail("fn");
+</script>
+</body>
+</html>
