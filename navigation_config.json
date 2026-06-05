@@ -1,9 +1,9 @@
 {
   "projectMenu": [
     { "label": "Home", "url": "index.html" },
-    { "label": "Queries", "url": "markdown_renderer.html?file=5_Symbols/convex_queries.md" },
-    { "label": "Mutations", "url": "markdown_renderer.html?file=5_Symbols/convex_mutations.md" },
-    { "label": "Architecture", "url": "markdown_renderer.html?file=2_Environment/architecture.md" }
+    { "label": "Queries", "url": "queries.html" },
+    { "label": "Mutations", "url": "mutations.html" },
+    { "label": "Architecture", "url": "architecture.html" }
   ],
   "debugMenu": [
     { "label": "1. Real Unknown", "url": "1_Real_Unknown/" },

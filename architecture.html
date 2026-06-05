@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture — Convex PoC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark:#0b0f19; --bg-card:rgba(22,28,45,0.7); --bg-glass:rgba(15,23,42,0.6);
+      --border-color:rgba(255,255,255,0.08); --text-primary:#f8fafc; --text-muted:#94a3b8;
+      --accent:#ef4444; --orange:#f97316; --green:#10b981; --blue:#38bdf8; --purple:#a78bfa;
+      --font-display:'Outfit',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'Fira Code',monospace;
+      --t:all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg-dark); color:var(--text-primary); font-family:var(--font-body); min-height:100vh; line-height:1.6; }
+    a { color:inherit; text-decoration:none; }
+    header { backdrop-filter:blur(12px); background:var(--bg-glass); border-bottom:1px solid var(--border-color); position:sticky; top:0; z-index:100; }
+    .hdr { max-width:1200px; margin:0 auto; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    .logo { font-family:var(--font-display); font-size:1.4rem; font-weight:700;
+      background:linear-gradient(135deg,var(--accent),var(--orange)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; display:flex; align-items:center; gap:0.5rem; }
+    nav { display:flex; gap:2rem; }
+    .nav-link { font-weight:500; color:var(--text-muted); position:relative; padding:0.25rem 0; transition:var(--t); }
+    .nav-link:hover,.nav-link.active { color:var(--text-primary); }
+    .nav-link::after { content:''; position:absolute; bottom:0; left:0; width:0; height:2px; background:linear-gradient(90deg,var(--accent),var(--orange)); transition:var(--t); }
+    .nav-link:hover::after,.nav-link.active::after { width:100%; }
+
+    .page { max-width:1200px; margin:0 auto; padding:3rem 2rem 6rem; }
+    .badge { display:inline-flex; align-items:center; gap:0.4rem; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3);
+      padding:0.3rem 0.9rem; border-radius:9999px; font-size:0.8rem; font-weight:600; color:var(--blue); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem; }
+    .page-title { font-family:var(--font-display); font-size:2.5rem; font-weight:700; margin-bottom:0.75rem;
+      background:linear-gradient(to right,#fff,#94a3b8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .page-desc { color:var(--text-muted); font-size:1.05rem; max-width:640px; margin-bottom:3rem; }
+
+    .card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:2rem; backdrop-filter:blur(16px); }
+    .card-title { font-family:var(--font-display); font-size:1.2rem; font-weight:600; margin-bottom:1.5rem; display:flex; align-items:center; gap:0.6rem; }
+
+    /* Diagram */
+    .diagram-wrap { position:relative; background:rgba(0,0,0,0.25); border:1px solid var(--border-color); border-radius:12px; overflow:hidden; padding:2.5rem 2rem; }
+
+    /* Layers */
+    .layer { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:0; }
+    .layer-label { font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.75rem; }
+
+    .node { display:flex; flex-direction:column; align-items:center; gap:0.4rem; padding:0.9rem 1.2rem; border-radius:10px; border:1px solid; min-width:110px; text-align:center; cursor:pointer; transition:var(--t); }
+    .node:hover { transform:translateY(-2px); }
+    .node-icon { font-size:1.4rem; }
+    .node-name { font-size:0.78rem; font-weight:600; }
+    .node-sub { font-size:0.68rem; opacity:0.7; }
+
+    .node.client { background:rgba(56,189,248,0.08); border-color:rgba(56,189,248,0.25); }
+    .node.client:hover { border-color:rgba(56,189,248,0.6); box-shadow:0 0 16px rgba(56,189,248,0.15); }
+    .node.convex { background:rgba(239,68,68,0.08); border-color:rgba(239,68,68,0.25); }
+    .node.convex:hover { border-color:rgba(239,68,68,0.6); box-shadow:0 0 16px rgba(239,68,68,0.15); }
+    .node.infra { background:rgba(167,139,250,0.08); border-color:rgba(167,139,250,0.25); }
+    .node.infra:hover { border-color:rgba(167,139,250,0.6); box-shadow:0 0 16px rgba(167,139,250,0.15); }
+
+    /* Arrows between layers */
+    .arrows { display:flex; justify-content:center; gap:0.5rem; align-items:center; padding:0.5rem 0; }
+    .arrow-group { display:flex; flex-direction:column; align-items:center; gap:0.1rem; }
+    .arrow-line { width:1px; height:20px; background:var(--border-color); }
+    .arrow-label { font-size:0.65rem; font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap; background:var(--bg-dark); padding:0 0.3rem; }
+    .arrow-head { color:var(--text-muted); font-size:0.6rem; }
+
+    /* Flow animation */
+    .flow-dot { width:6px; height:6px; border-radius:50%; position:absolute; pointer-events:none; }
+
+    /* Data-flow section */
+    .flow-steps { display:flex; flex-direction:column; gap:0; }
+    .flow-step { display:flex; gap:1rem; align-items:stretch; }
+    .flow-step-num { display:flex; flex-direction:column; align-items:center; }
+    .step-circle { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem; flex-shrink:0; }
+    .step-line { width:1px; flex:1; min-height:12px; margin:2px auto; }
+    .flow-step-body { padding-bottom:1.25rem; flex:1; }
+    .flow-step-title { font-weight:600; font-size:0.9rem; margin-bottom:0.2rem; }
+    .flow-step-desc { font-size:0.82rem; color:var(--text-muted); }
+    .flow-step-code { font-family:var(--font-mono); font-size:0.75rem; padding:0.3rem 0.6rem; border-radius:5px; margin-top:0.35rem; display:inline-block; }
+
+    /* Component table */
+    .comp-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .comp-table th { text-align:left; padding:0.6rem 1rem; font-weight:600; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; }
+    .comp-table td { padding:0.7rem 1rem; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .comp-table tr:last-child td { border-bottom:none; }
+    .comp-badge { display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.6rem; border-radius:5px; font-size:0.75rem; font-weight:600; }
+    code { font-family:var(--font-mono); font-size:0.82em; background:rgba(255,255,255,0.06); padding:0.15rem 0.4rem; border-radius:4px; }
+
+    @media (max-width:900px) { .layer { gap:0.5rem; } .node { min-width:90px; padding:0.7rem 0.8rem; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <a href="index.html" class="logo"><i class="fa-solid fa-bolt"></i> Convex PoC</a>
+    <nav>
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="queries.html" class="nav-link">Queries</a>
+      <a href="mutations.html" class="nav-link">Mutations</a>
+      <a href="architecture.html" class="nav-link active">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <div class="badge"><i class="fa-solid fa-diagram-project"></i> System Design</div>
+  <h1 class="page-title">Architecture</h1>
+  <p class="page-desc">How the Convex PoC is wired together — from browser to database, including secrets management and deployment pipeline.</p>
+
+  <!-- Interactive diagram -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title"><i class="fa-solid fa-sitemap" style="color:var(--blue)"></i> System Diagram</div>
+
+    <div class="diagram-wrap">
+
+      <!-- Client layer -->
+      <div class="layer-label" style="text-align:center;">Client Layer</div>
+      <div class="layer" style="margin-bottom:0.5rem;">
+        <div class="node client" onclick="highlight('react')">
+          <div class="node-icon" style="color:var(--blue)"><i class="fa-brands fa-react"></i></div>
+          <div class="node-name">React UI</div>
+          <div class="node-sub">Vite + TSX</div>
+        </div>
+        <div class="node client" onclick="highlight('sdk')">
+          <div class="node-icon" style="color:var(--blue)"><i class="fa-solid fa-plug"></i></div>
+          <div class="node-name">Convex SDK</div>
+          <div class="node-sub">useQuery / useMutation</div>
+        </div>
+        <div class="node client" onclick="highlight('clerk')">
+          <div class="node-icon" style="color:var(--blue)"><i class="fa-solid fa-user-shield"></i></div>
+          <div class="node-name">Clerk Auth</div>
+          <div class="node-sub">JWT identity</div>
+        </div>
+      </div>
+
+      <div class="arrows">
+        <div class="arrow-group">
+          <div class="arrow-line"></div>
+          <div class="arrow-label">WebSocket · reactive push</div>
+          <div class="arrow-line"></div>
+          <div class="arrow-head"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+      </div>
+
+      <!-- Convex layer -->
+      <div class="layer-label" style="text-align:center;">Convex Cloud</div>
+      <div class="layer" style="margin-bottom:0.5rem;">
+        <div class="node convex" onclick="highlight('rt')">
+          <div class="node-icon" style="color:var(--accent)"><i class="fa-solid fa-bolt"></i></div>
+          <div class="node-name">Real-time Engine</div>
+          <div class="node-sub">diff & push</div>
+        </div>
+        <div class="node convex" onclick="highlight('fn')">
+          <div class="node-icon" style="color:var(--accent)"><i class="fa-solid fa-code"></i></div>
+          <div class="node-name">Functions</div>
+          <div class="node-sub">queries · mutations · actions</div>
+        </div>
+        <div class="node convex" onclick="highlight('db')">
+          <div class="node-icon" style="color:var(--accent)"><i class="fa-solid fa-database"></i></div>
+          <div class="node-name">Convex DB</div>
+          <div class="node-sub">ACID · indexed</div>
+        </div>
+      </div>
+
+      <div class="arrows">
+        <div class="arrow-group">
+          <div class="arrow-line"></div>
+          <div class="arrow-label">secrets at deploy time</div>
+          <div class="arrow-line"></div>
+          <div class="arrow-head"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+      </div>
+
+      <!-- Infra layer -->
+      <div class="layer-label" style="text-align:center;">Infrastructure</div>
+      <div class="layer">
+        <div class="node infra" onclick="highlight('kv')">
+          <div class="node-icon" style="color:var(--purple)"><i class="fa-solid fa-key"></i></div>
+          <div class="node-name">Azure Key Vault</div>
+          <div class="node-sub">dp-kv-deliverypilot</div>
+        </div>
+        <div class="node infra" onclick="highlight('gh')">
+          <div class="node-icon" style="color:var(--purple)"><i class="fa-brands fa-github"></i></div>
+          <div class="node-name">GitHub Actions</div>
+          <div class="node-sub">CI/CD pipeline</div>
+        </div>
+        <div class="node infra" onclick="highlight('pages')">
+          <div class="node-icon" style="color:var(--purple)"><i class="fa-solid fa-globe"></i></div>
+          <div class="node-name">GitHub Pages</div>
+          <div class="node-sub">static site</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info panel -->
+    <div id="infoPanel" style="margin-top:1.25rem; padding:1rem 1.25rem; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; font-size:0.88rem; color:var(--text-muted); min-height:56px; transition:var(--t);">
+      Click any component above to learn more.
+    </div>
+  </div>
+
+  <!-- Two columns: data flow + component table -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;">
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-arrow-right-arrow-left" style="color:var(--orange)"></i> Data Flow</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">
+            <div class="step-circle" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:var(--blue);">1</div>
+            <div class="step-line" style="background:rgba(56,189,248,0.2);"></div>
+          </div>
+          <div class="flow-step-body">
+            <div class="flow-step-title">Client subscribes</div>
+            <div class="flow-step-desc">React component mounts → <code>useQuery</code> registers subscription over the existing WebSocket.</div>
+            <div class="flow-step-code" style="background:rgba(56,189,248,0.08);color:var(--blue);">useQuery(api.messages.listMessages)</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">
+            <div class="step-circle" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:var(--accent);">2</div>
+            <div class="step-line" style="background:rgba(239,68,68,0.2);"></div>
+          </div>
+          <div class="flow-step-body">
+            <div class="flow-step-title">Query executes</div>
+            <div class="flow-step-desc">Convex runs the handler, reads from DB, and streams the initial result to the client.</div>
+            <div class="flow-step-code" style="background:rgba(239,68,68,0.08);color:var(--accent);">ctx.db.query("messages").order("desc").take(50)</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">
+            <div class="step-circle" style="background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);color:var(--orange);">3</div>
+            <div class="step-line" style="background:rgba(249,115,22,0.2);"></div>
+          </div>
+          <div class="flow-step-body">
+            <div class="flow-step-title">Mutation fires</div>
+            <div class="flow-step-desc">Any client calls <code>sendMessage</code> → mutation runs transactionally, commits to DB.</div>
+            <div class="flow-step-code" style="background:rgba(249,115,22,0.08);color:var(--orange);">ctx.db.insert("messages", { text, author })</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">
+            <div class="step-circle" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:var(--green);">4</div>
+          </div>
+          <div class="flow-step-body" style="padding-bottom:0;">
+            <div class="flow-step-title">Reactive push</div>
+            <div class="flow-step-desc">Convex detects the <code>messages</code> table changed → re-runs all affected queries → pushes diffs to every subscriber. Zero client polling.</div>
+            <div class="flow-step-code" style="background:rgba(16,185,129,0.08);color:var(--green);">∆ diff → push to 3 subscribers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-table-list" style="color:var(--purple)"></i> Component Inventory</div>
+      <table class="comp-table">
+        <thead>
+          <tr><th>Component</th><th>Technology</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><span class="comp-badge" style="background:rgba(56,189,248,0.1);color:var(--blue);">React + Vite</span></td>
+            <td style="color:var(--text-muted);">UI layer, hooks</td>
+          </tr>
+          <tr>
+            <td><strong>SDK</strong></td>
+            <td><span class="comp-badge" style="background:rgba(239,68,68,0.1);color:var(--accent);">convex/react</span></td>
+            <td style="color:var(--text-muted);">WS + optimistic updates</td>
+          </tr>
+          <tr>
+            <td><strong>Auth</strong></td>
+            <td><span class="comp-badge" style="background:rgba(56,189,248,0.1);color:var(--blue);">Clerk</span></td>
+            <td style="color:var(--text-muted);">JWT → Convex identity</td>
+          </tr>
+          <tr>
+            <td><strong>Runtime</strong></td>
+            <td><span class="comp-badge" style="background:rgba(239,68,68,0.1);color:var(--accent);">Convex Cloud</span></td>
+            <td style="color:var(--text-muted);">Functions + reactive engine</td>
+          </tr>
+          <tr>
+            <td><strong>Database</strong></td>
+            <td><span class="comp-badge" style="background:rgba(239,68,68,0.1);color:var(--accent);">Convex DB</span></td>
+            <td style="color:var(--text-muted);">ACID document store</td>
+          </tr>
+          <tr>
+            <td><strong>Secrets</strong></td>
+            <td><span class="comp-badge" style="background:rgba(167,139,250,0.1);color:var(--purple);">Azure KV</span></td>
+            <td style="color:var(--text-muted);">dp-kv-deliverypilot</td>
+          </tr>
+          <tr>
+            <td><strong>CI/CD</strong></td>
+            <td><span class="comp-badge" style="background:rgba(167,139,250,0.1);color:var(--purple);">GitHub Actions</span></td>
+            <td style="color:var(--text-muted);">Build + deploy</td>
+          </tr>
+          <tr>
+            <td><strong>Hosting</strong></td>
+            <td><span class="comp-badge" style="background:rgba(167,139,250,0.1);color:var(--purple);">GitHub Pages</span></td>
+            <td style="color:var(--text-muted);">Static site delivery</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const INFO = {
+    react:  { title: "React UI",          color: "var(--blue)",   text: "React components use <code>useQuery</code> and <code>useMutation</code> hooks from the Convex SDK. Components re-render automatically when query results change — no manual state management or useEffect polling needed." },
+    sdk:    { title: "Convex React SDK",  color: "var(--blue)",   text: "The SDK maintains a single persistent WebSocket to the Convex deployment. All <code>useQuery</code> hooks share this connection. Subscriptions are multiplexed and de-duplicated — N hooks cost 1 connection." },
+    clerk:  { title: "Clerk Auth",        color: "var(--blue)",   text: "Clerk provides the JWT that Convex uses as identity context (<code>ctx.auth.getUserIdentity()</code>). The token is attached to every WebSocket message — no separate auth API call in the function." },
+    rt:     { title: "Real-time Engine",  color: "var(--accent)", text: "After every mutation, Convex's reactive engine identifies which queries read from the modified table and re-runs them. Only the diff (changed rows) is sent over the WebSocket — not the full result set." },
+    fn:     { title: "Functions Runtime", color: "var(--accent)", text: "TypeScript functions run in Convex's V8 isolates. Queries are pure (read-only), mutations are transactional (read-write), and actions can call external APIs. All are type-checked against the schema at compile time." },
+    db:     { title: "Convex DB",         color: "var(--accent)", text: "A document database with ACID transactions. Indexes are defined in <code>schema.ts</code> using <code>defineTable().index()</code>. Without an index, queries can still run but scan the full table — add indexes for production." },
+    kv:     { title: "Azure Key Vault",   color: "var(--purple)", text: "Vault: <code>dp-kv-deliverypilot</code> in <code>deliverypilot-rg</code>. Stores <code>CONVEX-DEPLOY-KEY</code>. GitHub Actions fetches this secret at deploy time via <code>Azure/get-keyvault-secrets</code>. Never committed to git." },
+    gh:     { title: "GitHub Actions",    color: "var(--purple)", text: "On push to <code>main</code>: fetches <code>CONVEX-DEPLOY-KEY</code> from Azure Key Vault → runs <code>npx convex deploy</code> to push functions → builds the static site → deploys to GitHub Pages." },
+    pages:  { title: "GitHub Pages",      color: "var(--purple)", text: "Serves the static HTML/JS/CSS site at <code>https://rifaterdemsahin.github.io/convex_poc/</code>. The markdown renderer and PoC pages (queries, mutations, architecture) are all static files — no server needed." },
+  };
+
+  function highlight(id) {
+    const info = INFO[id];
+    if (!info) return;
+    const panel = document.getElementById("infoPanel");
+    panel.style.borderColor = info.color;
+    panel.innerHTML = `<strong style="color:${info.color}">${info.title}</strong><br><span style="color:#cbd5e1;font-size:0.85rem;">${info.text}</span>`;
+  }
+</script>
+</body>
+</html>
